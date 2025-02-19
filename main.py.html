@@ -1,0 +1,234 @@
+<html>
+<head>
+<title>main.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #cf8e6d;}
+.s1 { color: #bcbec4;}
+.s2 { color: #bcbec4;}
+.s3 { color: #7a7e85;}
+.s4 { color: #2aacb8;}
+.s5 { color: #6aab73;}
+</style>
+</head>
+<body bgcolor="#1e1f22">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+main.py</font>
+</center></td></tr></table>
+<pre><span class="s0">import </span><span class="s1">numpy </span><span class="s0">as </span><span class="s1">np</span>
+<span class="s0">import </span><span class="s1">pandas </span><span class="s0">as </span><span class="s1">pd</span>
+<span class="s0">import </span><span class="s1">matplotlib</span><span class="s2">.</span><span class="s1">pyplot </span><span class="s0">as </span><span class="s1">plt</span>
+<span class="s0">import </span><span class="s1">matplotlib </span><span class="s0">as </span><span class="s1">mpl</span>
+<span class="s0">from </span><span class="s1">sklearn</span><span class="s2">.</span><span class="s1">preprocessing </span><span class="s0">import </span><span class="s1">MinMaxScaler</span>
+<span class="s0">from </span><span class="s1">sklearn</span><span class="s2">.</span><span class="s1">cluster </span><span class="s0">import </span><span class="s1">KMeans</span>
+<span class="s0">from </span><span class="s1">sklearn</span><span class="s2">.</span><span class="s1">metrics</span><span class="s2">.</span><span class="s1">pairwise </span><span class="s0">import </span><span class="s1">cosine_similarity</span>
+<span class="s0">from </span><span class="s1">sklearn</span><span class="s2">.</span><span class="s1">metrics</span><span class="s2">.</span><span class="s1">pairwise </span><span class="s0">import </span><span class="s1">cosine_similarity</span>
+<span class="s0">from </span><span class="s1">sklearn</span><span class="s2">.</span><span class="s1">impute </span><span class="s0">import </span><span class="s1">KNNImputer</span>
+<span class="s0">import </span><span class="s1">seaborn </span><span class="s0">as </span><span class="s1">sns</span>
+<span class="s0">import </span><span class="s1">matplotlib</span><span class="s2">.</span><span class="s1">cm </span><span class="s0">as </span><span class="s1">cm</span>
+<span class="s0">import </span><span class="s1">matplotlib</span><span class="s2">.</span><span class="s1">colors </span><span class="s0">as </span><span class="s1">mcolors</span>
+
+<span class="s3"># Ensure reproducibility</span>
+<span class="s1">np</span><span class="s2">.</span><span class="s1">random</span><span class="s2">.</span><span class="s1">seed</span><span class="s2">(</span><span class="s4">0</span><span class="s2">)</span>
+
+<span class="s3">##############################################################################</span>
+<span class="s3"># Function for Spectral Embedding</span>
+<span class="s3">##############################################################################</span>
+
+<span class="s0">def </span><span class="s1">right_embed</span><span class="s2">(</span><span class="s1">As</span><span class="s2">, </span><span class="s1">K</span><span class="s2">):</span>
+    <span class="s3"># Construct rectangular matrices</span>
+    <span class="s0">if </span><span class="s1">len</span><span class="s2">(</span><span class="s1">As</span><span class="s2">.</span><span class="s1">shape</span><span class="s2">) == </span><span class="s4">2</span><span class="s2">:</span>
+        <span class="s1">As </span><span class="s2">= </span><span class="s1">np</span><span class="s2">.</span><span class="s1">array</span><span class="s2">([</span><span class="s1">As</span><span class="s2">[:, :]])</span>
+
+    <span class="s0">if </span><span class="s1">len</span><span class="s2">(</span><span class="s1">As</span><span class="s2">.</span><span class="s1">shape</span><span class="s2">) == </span><span class="s4">3</span><span class="s2">:</span>
+        <span class="s1">T </span><span class="s2">= </span><span class="s1">len</span><span class="s2">(</span><span class="s1">As</span><span class="s2">)</span>
+        <span class="s1">A </span><span class="s2">= </span><span class="s1">As</span><span class="s2">[</span><span class="s4">0</span><span class="s2">, :, :]</span>
+        <span class="s0">for </span><span class="s1">t </span><span class="s0">in </span><span class="s1">range</span><span class="s2">(</span><span class="s4">1</span><span class="s2">, </span><span class="s1">T</span><span class="s2">):</span>
+            <span class="s1">A </span><span class="s2">= </span><span class="s1">np</span><span class="s2">.</span><span class="s1">block</span><span class="s2">([</span><span class="s1">A</span><span class="s2">, </span><span class="s1">As</span><span class="s2">[</span><span class="s1">t</span><span class="s2">]])</span>
+
+    <span class="s3"># Spectral embedding</span>
+    <span class="s1">UA</span><span class="s2">, </span><span class="s1">SA</span><span class="s2">, </span><span class="s1">VAt </span><span class="s2">= </span><span class="s1">np</span><span class="s2">.</span><span class="s1">linalg</span><span class="s2">.</span><span class="s1">svd</span><span class="s2">(</span><span class="s1">A</span><span class="s2">)</span><span class="s1">;</span>
+    <span class="s1">VA </span><span class="s2">= </span><span class="s1">VAt</span><span class="s2">.</span><span class="s1">T</span>
+
+    <span class="s1">YA </span><span class="s2">= </span><span class="s1">np</span><span class="s2">.</span><span class="s1">zeros</span><span class="s2">((</span><span class="s1">T</span><span class="s2">, </span><span class="s1">n</span><span class="s2">, </span><span class="s1">K</span><span class="s2">))</span>
+    <span class="s0">for </span><span class="s1">t </span><span class="s0">in </span><span class="s1">range</span><span class="s2">(</span><span class="s1">T</span><span class="s2">):</span>
+        <span class="s1">YA</span><span class="s2">[</span><span class="s1">t</span><span class="s2">] = </span><span class="s1">VA</span><span class="s2">[</span><span class="s1">t </span><span class="s2">* </span><span class="s1">n</span><span class="s2">:(</span><span class="s1">t </span><span class="s2">+ </span><span class="s4">1</span><span class="s2">) * </span><span class="s1">n</span><span class="s2">, </span><span class="s4">0</span><span class="s2">:</span><span class="s1">K</span><span class="s2">].</span><span class="s1">dot</span><span class="s2">(</span><span class="s1">np</span><span class="s2">.</span><span class="s1">diag</span><span class="s2">(</span><span class="s1">np</span><span class="s2">.</span><span class="s1">sqrt</span><span class="s2">(</span><span class="s1">SA</span><span class="s2">[</span><span class="s4">0</span><span class="s2">:</span><span class="s1">K</span><span class="s2">])))</span>
+
+    <span class="s0">return </span><span class="s1">YA</span>
+
+
+<span class="s3">##############################################################################</span>
+<span class="s3"># Load and preprocess accident dataset</span>
+<span class="s3">##############################################################################</span>
+<span class="s3"># Read the CSV file</span>
+<span class="s1">df </span><span class="s2">= </span><span class="s1">pd</span><span class="s2">.</span><span class="s1">read_csv</span><span class="s2">(</span><span class="s5">'Road_Accident.csv'</span><span class="s2">)</span>
+
+<span class="s3"># Convert time columns into numerical values</span>
+<span class="s1">df</span><span class="s2">[</span><span class="s5">'Accident Date'</span><span class="s2">] = </span><span class="s1">pd</span><span class="s2">.</span><span class="s1">to_datetime</span><span class="s2">(</span><span class="s1">df</span><span class="s2">[</span><span class="s5">'Accident Date'</span><span class="s2">], </span><span class="s1">format</span><span class="s2">=</span><span class="s5">'%m/%d/%y'</span><span class="s2">)</span>
+<span class="s1">df</span><span class="s2">[</span><span class="s5">'Year'</span><span class="s2">] = </span><span class="s1">df</span><span class="s2">[</span><span class="s5">'Accident Date'</span><span class="s2">].</span><span class="s1">dt</span><span class="s2">.</span><span class="s1">year</span>
+<span class="s1">df</span><span class="s2">[</span><span class="s5">'Month'</span><span class="s2">] = </span><span class="s1">df</span><span class="s2">[</span><span class="s5">'Accident Date'</span><span class="s2">].</span><span class="s1">dt</span><span class="s2">.</span><span class="s1">month</span>
+<span class="s1">df</span><span class="s2">[</span><span class="s5">'Day_of_Week'</span><span class="s2">] = </span><span class="s1">df</span><span class="s2">[</span><span class="s5">'Accident Date'</span><span class="s2">].</span><span class="s1">dt</span><span class="s2">.</span><span class="s1">dayofweek</span>
+<span class="s1">df</span><span class="s2">[</span><span class="s5">'Hour'</span><span class="s2">] = </span><span class="s1">pd</span><span class="s2">.</span><span class="s1">to_datetime</span><span class="s2">(</span><span class="s1">df</span><span class="s2">[</span><span class="s5">'Time'</span><span class="s2">], </span><span class="s1">format</span><span class="s2">=</span><span class="s5">'%H:%M'</span><span class="s2">).</span><span class="s1">dt</span><span class="s2">.</span><span class="s1">hour</span>
+
+<span class="s3"># Label encode some columns</span>
+<span class="s1">severity_mapping </span><span class="s2">= {</span><span class="s5">'Slight'</span><span class="s2">: </span><span class="s4">0</span><span class="s2">, </span><span class="s5">'Serious'</span><span class="s2">: </span><span class="s4">1</span><span class="s2">, </span><span class="s5">'Fatal'</span><span class="s2">: </span><span class="s4">2</span><span class="s2">}</span>
+<span class="s1">df</span><span class="s2">[</span><span class="s5">'Accident_Severity_Encoded'</span><span class="s2">] = </span><span class="s1">df</span><span class="s2">[</span><span class="s5">'Accident_Severity'</span><span class="s2">].</span><span class="s1">map</span><span class="s2">(</span><span class="s1">severity_mapping</span><span class="s2">)</span>
+
+<span class="s1">light_conditions_mapping </span><span class="s2">= {</span>
+    <span class="s5">'Daylight'</span><span class="s2">: </span><span class="s4">0</span><span class="s2">,</span>
+    <span class="s5">'Darkness - lights lit'</span><span class="s2">: </span><span class="s4">1</span><span class="s2">,</span>
+    <span class="s5">'Darkness - lighting unknown'</span><span class="s2">: </span><span class="s4">2</span><span class="s2">,</span>
+    <span class="s5">'Darkness - lights unlit'</span><span class="s2">: </span><span class="s4">3</span><span class="s2">,</span>
+    <span class="s5">'Darkness - no lighting'</span><span class="s2">: </span><span class="s4">4</span>
+<span class="s2">}</span>
+<span class="s1">df</span><span class="s2">[</span><span class="s5">'Light_Conditions_Encoded'</span><span class="s2">] = </span><span class="s1">df</span><span class="s2">[</span><span class="s5">'Light_Conditions'</span><span class="s2">].</span><span class="s1">map</span><span class="s2">(</span><span class="s1">light_conditions_mapping</span><span class="s2">)</span>
+
+
+<span class="s3"># One-hot encode categorical columns</span>
+<span class="s1">df </span><span class="s2">= </span><span class="s1">pd</span><span class="s2">.</span><span class="s1">get_dummies</span><span class="s2">(</span><span class="s1">df</span><span class="s2">, </span><span class="s1">columns</span><span class="s2">=[</span>
+    <span class="s5">'Road_Surface_Conditions'</span><span class="s2">, </span><span class="s5">'Urban_or_Rural_Area'</span><span class="s2">,</span><span class="s5">'Vehicle_Type'</span><span class="s2">,</span>
+    <span class="s5">'Weather_Conditions'</span>
+<span class="s2">], </span><span class="s1">dtype</span><span class="s2">=</span><span class="s1">int</span><span class="s2">)</span>
+
+<span class="s3"># Drop unnecessary columns</span>
+<span class="s1">df</span><span class="s2">.</span><span class="s1">drop</span><span class="s2">(</span><span class="s1">columns</span><span class="s2">=[</span>
+    <span class="s5">'Accident Date'</span><span class="s2">, </span><span class="s5">'Time'</span><span class="s2">, </span><span class="s5">'Light_Conditions'</span><span class="s2">, </span><span class="s5">'Accident_Severity'</span><span class="s2">,</span>
+    <span class="s5">'Accident_Index'</span><span class="s2">, </span><span class="s5">'Junction_Control'</span><span class="s2">, </span><span class="s5">'Junction_Detail'</span><span class="s2">,  </span><span class="s5">'Road_Type'</span><span class="s2">,</span>
+    <span class="s5">'Local_Authority_(District)'</span><span class="s2">, </span><span class="s5">'Police_Force'</span><span class="s2">,</span><span class="s5">'Year'</span><span class="s2">, </span><span class="s5">'Carriageway_Hazards'</span>
+<span class="s2">], </span><span class="s1">inplace</span><span class="s2">=</span><span class="s0">True</span><span class="s2">)</span>
+
+
+<span class="s3"># Handle NaN values with KKN</span>
+
+<span class="s1">knn_imputer </span><span class="s2">= </span><span class="s1">KNNImputer</span><span class="s2">(</span><span class="s1">n_neighbors</span><span class="s2">=</span><span class="s4">5</span><span class="s2">)  </span><span class="s3"># Uses 5 nearest neighbors</span>
+<span class="s1">df</span><span class="s2">[</span><span class="s1">df</span><span class="s2">.</span><span class="s1">select_dtypes</span><span class="s2">(</span><span class="s1">include</span><span class="s2">=[</span><span class="s5">'number'</span><span class="s2">]).</span><span class="s1">columns</span><span class="s2">] = </span><span class="s1">knn_imputer</span><span class="s2">.</span><span class="s1">fit_transform</span><span class="s2">(</span><span class="s1">df</span><span class="s2">.</span><span class="s1">select_dtypes</span><span class="s2">(</span><span class="s1">include</span><span class="s2">=[</span><span class="s5">'number'</span><span class="s2">]))</span>
+
+<span class="s1">df </span><span class="s2">= </span><span class="s1">df</span><span class="s2">.</span><span class="s1">astype</span><span class="s2">(</span><span class="s1">int</span><span class="s2">) </span><span class="s3"># to make sure that non numerical column are droped</span>
+
+
+<span class="s3">##############################################################################</span>
+<span class="s3"># Construct Adjacency Matrices</span>
+<span class="s3">##############################################################################</span>
+<span class="s1">full_columns </span><span class="s2">= </span><span class="s1">df</span><span class="s2">.</span><span class="s1">columns</span>
+
+<span class="s3"># Initialize the 3D array to store adjacency matrices</span>
+<span class="s1">n </span><span class="s2">= </span><span class="s1">len</span><span class="s2">(</span><span class="s1">full_columns</span><span class="s2">)  </span><span class="s3"># Number of features</span>
+<span class="s1">T </span><span class="s2">= </span><span class="s4">12  </span><span class="s3"># Number of months</span>
+<span class="s1">As </span><span class="s2">= </span><span class="s1">np</span><span class="s2">.</span><span class="s1">zeros</span><span class="s2">((</span><span class="s1">T</span><span class="s2">, </span><span class="s1">n</span><span class="s2">, </span><span class="s1">n</span><span class="s2">))  </span><span class="s3"># Shape: (12, n, n)</span>
+
+<span class="s3"># Compute adjacency matrices for each month using the 50th percentile threshold</span>
+<span class="s0">for </span><span class="s1">month </span><span class="s0">in </span><span class="s1">range</span><span class="s2">(</span><span class="s4">1</span><span class="s2">, </span><span class="s1">T </span><span class="s2">+ </span><span class="s4">1</span><span class="s2">):</span>
+    <span class="s3"># Filter data for the current month</span>
+    <span class="s1">monthly_data </span><span class="s2">= </span><span class="s1">df</span><span class="s2">[</span><span class="s1">df</span><span class="s2">[</span><span class="s5">'Month'</span><span class="s2">] == </span><span class="s1">month</span><span class="s2">]</span>
+
+    <span class="s3"># Reindex to ensure all columns are present</span>
+    <span class="s1">monthly_data </span><span class="s2">= </span><span class="s1">monthly_data</span><span class="s2">.</span><span class="s1">reindex</span><span class="s2">(</span><span class="s1">columns</span><span class="s2">=</span><span class="s1">full_columns</span><span class="s2">, </span><span class="s1">fill_value</span><span class="s2">=</span><span class="s4">0</span><span class="s2">)</span>
+
+    <span class="s0">if </span><span class="s1">len</span><span class="s2">(</span><span class="s1">monthly_data</span><span class="s2">) &gt; </span><span class="s4">1</span><span class="s2">:</span>
+        <span class="s1">A </span><span class="s2">= </span><span class="s1">cosine_similarity</span><span class="s2">(</span><span class="s1">monthly_data</span><span class="s2">.</span><span class="s1">T</span><span class="s2">)  </span><span class="s3"># Compute similarity matrix</span>
+
+        <span class="s3"># Compute the 50th percentile of absolute similarity values</span>
+        <span class="s1">threshold </span><span class="s2">= </span><span class="s1">np</span><span class="s2">.</span><span class="s1">percentile</span><span class="s2">(</span><span class="s1">np</span><span class="s2">.</span><span class="s1">abs</span><span class="s2">(</span><span class="s1">A</span><span class="s2">), </span><span class="s4">50</span><span class="s2">)</span>
+
+        <span class="s3"># Binarize using the dynamic threshold</span>
+        <span class="s1">binary_A </span><span class="s2">= (</span><span class="s1">np</span><span class="s2">.</span><span class="s1">abs</span><span class="s2">(</span><span class="s1">A</span><span class="s2">) &gt; </span><span class="s1">threshold</span><span class="s2">).</span><span class="s1">astype</span><span class="s2">(</span><span class="s1">int</span><span class="s2">)</span>
+
+        <span class="s3"># Store the binary adjacency matrix</span>
+        <span class="s1">As</span><span class="s2">[</span><span class="s1">month </span><span class="s2">- </span><span class="s4">1</span><span class="s2">] = </span><span class="s1">binary_A</span>
+
+    <span class="s0">else</span><span class="s2">:</span>
+        <span class="s1">print</span><span class="s2">(</span><span class="s5">f&quot;Not enough data for month </span><span class="s0">{</span><span class="s1">month</span><span class="s0">}</span><span class="s5">. Skipping.&quot;</span><span class="s2">)</span>
+
+
+<span class="s3">##############################################################################</span>
+<span class="s3"># Apply Unfolded Adjacency Spectral Embedding</span>
+<span class="s3">##############################################################################</span>
+<span class="s1">print</span><span class="s2">(</span><span class="s5">&quot;Number of features:&quot;</span><span class="s2">, </span><span class="s1">n</span><span class="s2">)</span>
+
+<span class="s1">k </span><span class="s2">= </span><span class="s1">n</span>
+<span class="s1">YA_UASE </span><span class="s2">= </span><span class="s1">right_embed</span><span class="s2">(</span><span class="s1">As</span><span class="s2">, </span><span class="s1">k</span><span class="s2">)</span>
+
+<span class="s3">##############################################################################</span>
+<span class="s3"># Normalize Embeddings for better Visualization</span>
+<span class="s3">##############################################################################</span>
+<span class="s1">scaler </span><span class="s2">= </span><span class="s1">MinMaxScaler</span><span class="s2">()</span>
+<span class="s1">YA_UASE_scaled </span><span class="s2">= </span><span class="s1">np</span><span class="s2">.</span><span class="s1">array</span><span class="s2">([</span><span class="s1">scaler</span><span class="s2">.</span><span class="s1">fit_transform</span><span class="s2">(</span><span class="s1">YA_UASE</span><span class="s2">[</span><span class="s1">t</span><span class="s2">]) </span><span class="s0">for </span><span class="s1">t </span><span class="s0">in </span><span class="s1">range</span><span class="s2">(</span><span class="s1">T</span><span class="s2">)])</span>
+
+<span class="s3">##############################################################################</span>
+<span class="s3"># Visualization</span>
+<span class="s3">##############################################################################</span>
+<span class="s1">fig</span><span class="s2">, </span><span class="s1">axes </span><span class="s2">= </span><span class="s1">plt</span><span class="s2">.</span><span class="s1">subplots</span><span class="s2">(</span><span class="s4">3</span><span class="s2">, </span><span class="s4">4</span><span class="s2">, </span><span class="s1">figsize</span><span class="s2">=(</span><span class="s4">20</span><span class="s2">, </span><span class="s4">15</span><span class="s2">))</span>
+<span class="s1">fig</span><span class="s2">.</span><span class="s1">suptitle</span><span class="s2">(</span><span class="s5">'Embeddings for Each Month (Colored by Feature)'</span><span class="s2">, </span><span class="s1">fontsize</span><span class="s2">=</span><span class="s4">16</span><span class="s2">)</span>
+
+<span class="s3"># Define a diverse colormap for better color separation</span>
+<span class="s1">cmap </span><span class="s2">= </span><span class="s1">cm</span><span class="s2">.</span><span class="s1">get_cmap</span><span class="s2">(</span><span class="s5">'rainbow'</span><span class="s2">, </span><span class="s1">n</span><span class="s2">)  </span><span class="s3"># 'rainbow' provides better color contrast</span>
+<span class="s1">feature_colors </span><span class="s2">= [</span><span class="s1">cmap</span><span class="s2">(</span><span class="s1">i</span><span class="s2">) </span><span class="s0">for </span><span class="s1">i </span><span class="s0">in </span><span class="s1">range</span><span class="s2">(</span><span class="s1">n</span><span class="s2">)]</span>
+
+<span class="s3"># Define a list of different marker styles for better feature distinction</span>
+<span class="s1">marker_styles </span><span class="s2">= [</span><span class="s5">'o'</span><span class="s2">, </span><span class="s5">'s'</span><span class="s2">, </span><span class="s5">'D'</span><span class="s2">, </span><span class="s5">'^'</span><span class="s2">, </span><span class="s5">'v'</span><span class="s2">, </span><span class="s5">'&lt;'</span><span class="s2">, </span><span class="s5">'&gt;'</span><span class="s2">, </span><span class="s5">'p'</span><span class="s2">, </span><span class="s5">'*'</span><span class="s2">, </span><span class="s5">'X'</span><span class="s2">, </span><span class="s5">'h'</span><span class="s2">, </span><span class="s5">'H'</span><span class="s2">]</span>
+<span class="s1">markers </span><span class="s2">= </span><span class="s1">marker_styles </span><span class="s2">* (</span><span class="s1">n </span><span class="s2">// </span><span class="s1">len</span><span class="s2">(</span><span class="s1">marker_styles</span><span class="s2">) + </span><span class="s4">1</span><span class="s2">)  </span><span class="s3"># Repeat markers if needed</span>
+
+<span class="s3"># Mapping features to markers</span>
+<span class="s1">feature_marker_map </span><span class="s2">= {</span><span class="s1">feature</span><span class="s2">: </span><span class="s1">markers</span><span class="s2">[</span><span class="s1">i</span><span class="s2">] </span><span class="s0">for </span><span class="s1">i</span><span class="s2">, </span><span class="s1">feature </span><span class="s0">in </span><span class="s1">enumerate</span><span class="s2">(</span><span class="s1">full_columns</span><span class="s2">)}</span>
+
+<span class="s1">jitter </span><span class="s2">= </span><span class="s4">0.02  </span><span class="s3"># Avoid overlapping points</span>
+
+<span class="s0">for </span><span class="s1">t </span><span class="s0">in </span><span class="s1">range</span><span class="s2">(</span><span class="s1">T</span><span class="s2">):</span>
+    <span class="s1">ax </span><span class="s2">= </span><span class="s1">axes</span><span class="s2">[</span><span class="s1">t </span><span class="s2">// </span><span class="s4">4</span><span class="s2">, </span><span class="s1">t </span><span class="s2">% </span><span class="s4">4</span><span class="s2">]</span>
+
+    <span class="s0">for </span><span class="s1">feature_idx</span><span class="s2">, </span><span class="s1">feature </span><span class="s0">in </span><span class="s1">enumerate</span><span class="s2">(</span><span class="s1">full_columns</span><span class="s2">):</span>
+        <span class="s1">x_jittered </span><span class="s2">= </span><span class="s1">YA_UASE_scaled</span><span class="s2">[</span><span class="s1">t</span><span class="s2">][</span><span class="s1">feature_idx</span><span class="s2">, </span><span class="s4">0</span><span class="s2">] + </span><span class="s1">np</span><span class="s2">.</span><span class="s1">random</span><span class="s2">.</span><span class="s1">uniform</span><span class="s2">(-</span><span class="s1">jitter</span><span class="s2">, </span><span class="s1">jitter</span><span class="s2">)</span>
+        <span class="s1">y_jittered </span><span class="s2">= </span><span class="s1">YA_UASE_scaled</span><span class="s2">[</span><span class="s1">t</span><span class="s2">][</span><span class="s1">feature_idx</span><span class="s2">, </span><span class="s4">1</span><span class="s2">] + </span><span class="s1">np</span><span class="s2">.</span><span class="s1">random</span><span class="s2">.</span><span class="s1">uniform</span><span class="s2">(-</span><span class="s1">jitter</span><span class="s2">, </span><span class="s1">jitter</span><span class="s2">)</span>
+
+        <span class="s1">ax</span><span class="s2">.</span><span class="s1">scatter</span><span class="s2">(</span><span class="s1">x_jittered</span><span class="s2">, </span><span class="s1">y_jittered</span><span class="s2">, </span><span class="s1">color</span><span class="s2">=</span><span class="s1">feature_colors</span><span class="s2">[</span><span class="s1">feature_idx</span><span class="s2">],</span>
+                   <span class="s1">marker</span><span class="s2">=</span><span class="s1">feature_marker_map</span><span class="s2">[</span><span class="s1">feature</span><span class="s2">], </span><span class="s1">label</span><span class="s2">=</span><span class="s1">feature</span><span class="s2">, </span><span class="s1">s</span><span class="s2">=</span><span class="s4">50</span><span class="s2">)</span>
+
+    <span class="s1">ax</span><span class="s2">.</span><span class="s1">set_title</span><span class="s2">(</span><span class="s5">f'Month </span><span class="s0">{</span><span class="s1">t </span><span class="s2">+ </span><span class="s4">1</span><span class="s0">}</span><span class="s5">'</span><span class="s2">)</span>
+    <span class="s1">ax</span><span class="s2">.</span><span class="s1">set_xlabel</span><span class="s2">(</span><span class="s5">'Embedding Dimension 1'</span><span class="s2">)</span>
+    <span class="s1">ax</span><span class="s2">.</span><span class="s1">set_ylabel</span><span class="s2">(</span><span class="s5">'Embedding Dimension 2'</span><span class="s2">)</span>
+    <span class="s1">ax</span><span class="s2">.</span><span class="s1">grid</span><span class="s2">(</span><span class="s0">True</span><span class="s2">)</span>
+
+<span class="s1">plt</span><span class="s2">.</span><span class="s1">tight_layout</span><span class="s2">()</span>
+<span class="s1">plt</span><span class="s2">.</span><span class="s1">show</span><span class="s2">()</span>
+
+<span class="s3">##############################################################################</span>
+<span class="s3"># Create a Separate Legend Figure</span>
+<span class="s3">##############################################################################</span>
+<span class="s1">legend_fig</span><span class="s2">, </span><span class="s1">legend_ax </span><span class="s2">= </span><span class="s1">plt</span><span class="s2">.</span><span class="s1">subplots</span><span class="s2">(</span><span class="s1">figsize</span><span class="s2">=(</span><span class="s4">15</span><span class="s2">, </span><span class="s4">8</span><span class="s2">))</span>
+
+<span class="s3"># Get unique legend entries without duplicates</span>
+<span class="s1">handles</span><span class="s2">, </span><span class="s1">labels </span><span class="s2">= </span><span class="s1">ax</span><span class="s2">.</span><span class="s1">get_legend_handles_labels</span><span class="s2">()</span>
+<span class="s1">unique_legend </span><span class="s2">= </span><span class="s1">dict</span><span class="s2">(</span><span class="s1">zip</span><span class="s2">(</span><span class="s1">labels</span><span class="s2">, </span><span class="s1">handles</span><span class="s2">))</span>
+
+<span class="s1">legend_ax</span><span class="s2">.</span><span class="s1">legend</span><span class="s2">(</span><span class="s1">unique_legend</span><span class="s2">.</span><span class="s1">values</span><span class="s2">(), </span><span class="s1">unique_legend</span><span class="s2">.</span><span class="s1">keys</span><span class="s2">(), </span><span class="s1">loc</span><span class="s2">=</span><span class="s5">&quot;upper left&quot;</span><span class="s2">,</span>
+                 <span class="s1">fontsize</span><span class="s2">=</span><span class="s4">9</span><span class="s2">, </span><span class="s1">ncol</span><span class="s2">=</span><span class="s4">3</span><span class="s2">, </span><span class="s1">markerscale</span><span class="s2">=</span><span class="s4">1.5</span><span class="s2">)  </span><span class="s3"># Adjust marker size for readability</span>
+<span class="s1">legend_ax</span><span class="s2">.</span><span class="s1">axis</span><span class="s2">(</span><span class="s5">&quot;off&quot;</span><span class="s2">)  </span><span class="s3"># Hide axes for a clean display</span>
+
+<span class="s1">plt</span><span class="s2">.</span><span class="s1">show</span><span class="s2">()</span>
+
+<span class="s3">##############################################################################</span>
+<span class="s3"># Create correlation matrix  </span>
+<span class="s3">##############################################################################</span>
+
+<span class="s3"># Select the features of interest</span>
+<span class="s1">features </span><span class="s2">= [</span><span class="s5">'Number_of_Casualties'</span><span class="s2">, </span><span class="s5">'Weather_Conditions_Raining no high winds'</span><span class="s2">]</span>
+
+<span class="s3"># Compute Pearson correlation for Month 1 and Month 5</span>
+<span class="s1">correlation_results </span><span class="s2">= {}</span>
+<span class="s0">for </span><span class="s1">month </span><span class="s0">in </span><span class="s2">[</span><span class="s4">1</span><span class="s2">, </span><span class="s4">5</span><span class="s2">]:</span>
+    <span class="s1">monthly_data </span><span class="s2">= </span><span class="s1">df</span><span class="s2">[</span><span class="s1">df</span><span class="s2">[</span><span class="s5">'Month'</span><span class="s2">] == </span><span class="s1">month</span><span class="s2">][</span><span class="s1">features</span><span class="s2">]</span>
+    <span class="s1">correlation_results</span><span class="s2">[</span><span class="s1">month</span><span class="s2">] = </span><span class="s1">monthly_data</span><span class="s2">.</span><span class="s1">corr</span><span class="s2">()</span>
+
+<span class="s3"># Plot correlation matrices</span>
+<span class="s1">fig</span><span class="s2">, </span><span class="s1">axes </span><span class="s2">= </span><span class="s1">plt</span><span class="s2">.</span><span class="s1">subplots</span><span class="s2">(</span><span class="s4">1</span><span class="s2">, </span><span class="s4">2</span><span class="s2">, </span><span class="s1">figsize</span><span class="s2">=(</span><span class="s4">10</span><span class="s2">, </span><span class="s4">10</span><span class="s2">))</span>
+<span class="s0">for </span><span class="s1">i</span><span class="s2">, </span><span class="s1">month </span><span class="s0">in </span><span class="s1">enumerate</span><span class="s2">([</span><span class="s4">1</span><span class="s2">, </span><span class="s4">5</span><span class="s2">]):</span>
+    <span class="s1">sns</span><span class="s2">.</span><span class="s1">heatmap</span><span class="s2">(</span><span class="s1">correlation_results</span><span class="s2">[</span><span class="s1">month</span><span class="s2">], </span><span class="s1">annot</span><span class="s2">=</span><span class="s0">True</span><span class="s2">, </span><span class="s1">cmap</span><span class="s2">=</span><span class="s5">'coolwarm'</span><span class="s2">, </span><span class="s1">vmin</span><span class="s2">=-</span><span class="s4">1</span><span class="s2">, </span><span class="s1">vmax</span><span class="s2">=</span><span class="s4">1</span><span class="s2">, </span><span class="s1">ax</span><span class="s2">=</span><span class="s1">axes</span><span class="s2">[</span><span class="s1">i</span><span class="s2">])</span>
+    <span class="s1">axes</span><span class="s2">[</span><span class="s1">i</span><span class="s2">].</span><span class="s1">set_title</span><span class="s2">(</span><span class="s5">f'Correlation Matrix (Month </span><span class="s0">{</span><span class="s1">month</span><span class="s0">}</span><span class="s5">)'</span><span class="s2">)</span>
+
+<span class="s1">plt</span><span class="s2">.</span><span class="s1">tight_layout</span><span class="s2">()</span>
+<span class="s1">plt</span><span class="s2">.</span><span class="s1">show</span><span class="s2">()</span>
+</pre>
+</body>
+</html>
